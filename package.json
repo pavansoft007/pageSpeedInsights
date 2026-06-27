@@ -6,11 +6,15 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "main": "src/server.js",
+  "main": "src/start.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node src/start.js",
+    "server": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "audit": "node src/cli.js"
+    "audit": "node src/cli.js",
+    "crawl": "node src/crawl-cli.js",
+    "pagespeed": "node src/pagespeed-cli.js",
+    "queue": "node src/queue-cli.js"
   },
   "keywords": [
     "pagespeed",

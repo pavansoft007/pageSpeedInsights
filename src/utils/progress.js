@@ -18,7 +18,11 @@ export function createProgressBar(total, label = 'Processing') {
       bar.increment(1, payload);
     },
     update(payload = {}) {
-      bar.update(payload);
+      if (payload.value !== undefined) {
+        bar.update(payload.value, payload);
+        return;
+      }
+      bar.update(bar.value, payload);
     },
     stop() {
       bar.stop();

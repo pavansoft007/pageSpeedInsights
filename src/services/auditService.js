@@ -76,14 +76,16 @@ export class AuditService {
     });
 
     const pageSpeed = new PageSpeedService({
-      strategy: audit.options.strategy,
+      concurrency: config.pagespeed.concurrency,
     });
 
     try {
       audit.pages = await crawler.crawl(audit.startUrl);
 
       const urls = [...new Set(audit.pages.map((page) => page.finalUrl || page.url))];
-      audit.pageSpeedResults = await pageSpeed.analyzeUrls(urls);
+      const pageSpeedResults = await pageSpeed.analyzeUrls(urls, { showProgress: true });
+      audit.pageSpeedResults = pageSpeed.flattenResults(pageSpeedResults);
+      audit.pageSpeedFullResults = pageSpeedResults;
 
       if (audit.options.generateReports) {
         audit.reports = await reportService.generateAll(audit);

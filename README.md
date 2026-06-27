@@ -1,150 +1,103 @@
 # Website Performance Auditor
 
-Production-ready Node.js application for auditing website performance. It crawls pages with Playwright, analyzes them via Google PageSpeed Insights, and exports results to Excel and CSV.
+Production-ready Node.js application for auditing website performance. It discovers URLs via sitemap or Playwright crawl, analyzes them with Google PageSpeed Insights, and exports results to Excel and CSV.
+
+## Pipeline
+
+```
+Input URL
+    │
+    ▼
+Check sitemap.xml
+    │
+    ├── If found → Extract all URLs
+    │
+    └── If not found → Crawl website with Playwright
+                     │
+                     ▼
+Remove duplicates & filter internal URLs
+                     │
+                     ▼
+Run Google PageSpeed Insights API
+(Mobile + Desktop, with concurrent requests)
+                     │
+                     ▼
+Generate Excel + CSV reports
+                     │
+                     ▼
+Summary dashboard + logs + resume checkpoints
+```
 
 ## Requirements
 
 - Node.js 22+
 - npm
 
-## Tech Stack
-
-| Package | Purpose |
-|---------|---------|
-| Express | HTTP API server |
-| dotenv | Environment configuration |
-| axios | PageSpeed Insights API client |
-| Playwright | Headless browser crawling |
-| Cheerio | HTML parsing and link extraction |
-| ExcelJS | Excel report generation |
-| csv-writer | CSV report generation |
-| cli-progress | CLI progress bars |
-| p-limit | Concurrent PageSpeed request limiting |
-| Winston | Structured logging |
-
-## Project Structure
-
-```
-website-performance-auditor/
-├── src/
-│   ├── crawler/          # Playwright crawling + Cheerio link extraction
-│   ├── pagespeed/        # PageSpeed Insights API integration
-│   ├── reports/          # Excel and CSV report generators
-│   ├── services/         # Audit orchestration
-│   ├── utils/            # Logger, URL helpers, errors
-│   ├── config/           # Environment configuration
-│   ├── routes/           # Express route handlers
-│   ├── app.js            # Express application setup
-│   ├── server.js         # Server entry point
-│   └── cli.js            # Command-line interface
-├── reports/              # Generated audit reports
-├── logs/                 # Application logs
-├── package.json
-├── .env
-└── README.md
-```
-
 ## Setup
-
-1. Install dependencies:
 
 ```bash
 npm install
-```
-
-2. Install Playwright browsers:
-
-```bash
 npx playwright install chromium
-```
-
-3. Copy and configure environment variables:
-
-```bash
 cp .env.example .env
 ```
 
-Optional: set `PAGESPEED_API_KEY` for higher Google API quotas. Get a key from [Google Cloud Console](https://console.cloud.google.com/).
+Set `PAGESPEED_API_KEY` in `.env` for reliable API access.
 
 ## Usage
 
-### Start the API server
+### Run a full audit
+
+```bash
+npm start https://example.com
+```
+
+Re-run the same URL to automatically resume from the last checkpoint.
+
+### Start API server
 
 ```bash
 npm start
+npm run server
 ```
 
-Development mode with auto-reload:
-
-```bash
-npm run dev
-```
-
-### Run a CLI audit
+### Other commands
 
 ```bash
 npm run audit -- https://example.com
+npm run crawl -- https://example.com
+npm run pagespeed -- https://example.com
+npm run queue -- https://example.com
 ```
 
-### API Endpoints
+## Output
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| GET | `/api/audits` | List all audits |
-| POST | `/api/audits` | Start a new audit |
-| GET | `/api/audits/:id` | Get audit status and results |
-
-#### Start an audit
-
-```bash
-curl -X POST http://localhost:3000/api/audits \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://example.com",
-    "maxPages": 5,
-    "maxDepth": 1,
-    "strategy": "mobile"
-  }'
-```
-
-#### Check audit status
-
-```bash
-curl http://localhost:3000/api/audits/<audit-id>
-```
+| Output | Location |
+|--------|----------|
+| Excel report | `reports/pagespeed-report.xlsx` |
+| CSV report | `reports/pagespeed-report.csv` |
+| Run log | `logs/run-YYYY-MM-DD.log` |
+| Checkpoint | `reports/checkpoint/{jobId}.json` |
 
 ## Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | `3000` | Server port |
+| `CRAWL_MAX_PAGES` | `10000` | Max URLs to discover |
+| `CRAWL_PREFER_SITEMAP` | `true` | Try sitemap before crawling |
+| `PAGESPEED_QUEUE_CONCURRENCY` | `5` | Concurrent PageSpeed workers |
 | `PAGESPEED_API_KEY` | — | Google PageSpeed API key |
-| `CRAWL_MAX_PAGES` | `10` | Max pages to crawl |
-| `CRAWL_MAX_DEPTH` | `2` | Max crawl depth |
-| `CRAWL_TIMEOUT_MS` | `30000` | Page load timeout |
-| `PAGESPEED_STRATEGY` | `mobile` | `mobile` or `desktop` |
-| `PAGESPEED_CONCURRENCY` | `3` | Parallel PageSpeed requests |
-| `REPORTS_DIR` | `reports` | Report output directory |
-| `LOGS_DIR` | `logs` | Log file directory |
+| `CHECKPOINT_DIR` | `reports/checkpoint` | Checkpoint JSON directory |
 
 ## Architecture
 
-The app follows a service-oriented layout:
-
-- **CrawlerService** — discovers pages using Playwright and extracts links with Cheerio
-- **PageSpeedService** — runs Lighthouse metrics via the PageSpeed Insights API with concurrency control
-- **ReportService** — generates Excel (multi-sheet) and CSV exports
-- **AuditService** — orchestrates the full audit pipeline and tracks job state
-
-## Output
-
-Completed audits produce:
-
-- **Excel** — Summary, crawl results, and PageSpeed metrics
-- **CSV** — PageSpeed metrics for easy import into other tools
-
-Reports are saved to the `reports/` directory.
+| Module | Role |
+|--------|------|
+| `pipeline/` | End-to-end audit orchestration |
+| `crawler/` | Sitemap, robots.txt, Playwright crawl, URL dedup |
+| `pagespeed/` | PageSpeed Insights API (mobile + desktop) |
+| `queue/` | Concurrent job processing with retries |
+| `checkpoint/` | JSON checkpoints with auto-resume |
+| `reports/` | Excel + CSV report generation |
 
 ## License
 

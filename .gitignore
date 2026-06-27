@@ -1,7 +1,12 @@
 node_modules/
 logs/*.log
+!logs/.gitkeep
 reports/*
 !reports/.gitkeep
+!reports/queue/
+!reports/checkpoint/
+reports/queue/*.json
+reports/checkpoint/*.json
 .env
 !.env.example
 playwright-report/

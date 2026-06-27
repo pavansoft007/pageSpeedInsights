@@ -1,23 +1,35 @@
 import * as cheerio from 'cheerio';
-import { isSameOrigin, resolveUrl } from '../utils/url.js';
+import { normalizeCrawlUrl } from './urlNormalizer.js';
+import { isIgnoredHref, shouldCrawlUrl } from './urlFilter.js';
 
-export function extractLinks(html, pageUrl) {
+export function extractCanonicalUrl(html, pageUrl, allowedOrigin) {
+  const $ = cheerio.load(html);
+  const href = $('link[rel="canonical"]').attr('href')?.trim();
+
+  if (!href) {
+    return null;
+  }
+
+  return normalizeCrawlUrl(href, allowedOrigin) ?? normalizeCrawlUrl(href, pageUrl);
+}
+
+export function extractCrawlLinks(html, pageUrl, allowedOrigin) {
   const $ = cheerio.load(html);
   const links = new Set();
 
   $('a[href]').each((_, element) => {
     const href = $(element).attr('href')?.trim();
-    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+    if (isIgnoredHref(href)) {
       return;
     }
 
-    const resolved = resolveUrl(pageUrl, href);
-    if (resolved && isSameOrigin(pageUrl, resolved)) {
-      links.add(resolved.split('#')[0]);
+    const normalized = normalizeCrawlUrl(href, allowedOrigin);
+    if (normalized && shouldCrawlUrl(normalized) && normalized !== pageUrl) {
+      links.add(normalized);
     }
   });
 
-  return [...links];
+  return links;
 }
 
 export function extractPageMetadata(html) {
@@ -33,4 +45,4 @@ export function extractPageMetadata(html) {
   };
 }
 
-export default extractLinks;
+export default extractCrawlLinks;

@@ -14,6 +14,25 @@ function startServer() {
     });
   });
 
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      logger.error(`Port ${config.port} is already in use`, {
+        port: config.port,
+        hint: `Stop the other process or set PORT to a different value in .env`,
+      });
+      console.error(
+        `\nPort ${config.port} is already in use.\n` +
+          `Another server instance may still be running.\n` +
+          `Windows: netstat -ano | findstr :${config.port}  then  taskkill /PID <pid> /F\n` +
+          `Or set a different PORT in .env\n`
+      );
+      process.exit(1);
+    }
+
+    logger.error('Server failed to start', { error: error.message });
+    process.exit(1);
+  });
+
   return server;
 }
 

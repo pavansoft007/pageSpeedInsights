@@ -30,6 +30,7 @@ export async function generateCsvReport(auditResult) {
       { id: 'seoScore', title: 'SEO Score' },
       { id: 'firstContentfulPaint', title: 'FCP' },
       { id: 'largestContentfulPaint', title: 'LCP' },
+      { id: 'interactionToNextPaint', title: 'INP' },
       { id: 'totalBlockingTime', title: 'TBT' },
       { id: 'cumulativeLayoutShift', title: 'CLS' },
       { id: 'speedIndex', title: 'Speed Index' },

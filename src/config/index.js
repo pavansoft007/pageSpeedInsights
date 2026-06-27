@@ -23,18 +23,31 @@ export const config = {
   pagespeed: {
     apiKey: process.env.PAGESPEED_API_KEY ?? '',
     strategy: process.env.PAGESPEED_STRATEGY ?? 'mobile',
-    concurrency: parseIntEnv('PAGESPEED_CONCURRENCY', 3),
+    concurrency: parseIntEnv('PAGESPEED_CONCURRENCY', 5),
+    retries: parseIntEnv('PAGESPEED_RETRIES', 3),
+    retryDelayMs: parseIntEnv('PAGESPEED_RETRY_DELAY_MS', 2000),
+    rateLimitDelayMs: parseIntEnv('PAGESPEED_RATE_LIMIT_DELAY_MS', 2000),
     timeoutMs: parseIntEnv('PAGESPEED_TIMEOUT_MS', 60_000),
     apiUrl: 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed',
   },
   crawler: {
-    maxPages: parseIntEnv('CRAWL_MAX_PAGES', 10),
-    maxDepth: parseIntEnv('CRAWL_MAX_DEPTH', 2),
+    maxPages: parseIntEnv('CRAWL_MAX_PAGES', 10_000),
+    maxDepth: parseIntEnv('CRAWL_MAX_DEPTH', 100),
+    concurrency: parseIntEnv('CRAWL_CONCURRENCY', 5),
+    retries: parseIntEnv('CRAWL_RETRIES', 3),
+    retryDelayMs: parseIntEnv('CRAWL_RETRY_DELAY_MS', 1000),
     timeoutMs: parseIntEnv('CRAWL_TIMEOUT_MS', 30_000),
+    preferSitemap: process.env.CRAWL_PREFER_SITEMAP !== 'false',
   },
   paths: {
     reports: path.resolve(projectRoot, process.env.REPORTS_DIR ?? 'reports'),
     logs: path.resolve(projectRoot, process.env.LOGS_DIR ?? 'logs'),
+    queue: path.resolve(projectRoot, process.env.QUEUE_STATE_DIR ?? 'reports/queue'),
+    checkpoint: path.resolve(projectRoot, process.env.CHECKPOINT_DIR ?? 'reports/checkpoint'),
+  },
+  queue: {
+    concurrency: parseIntEnv('PAGESPEED_QUEUE_CONCURRENCY', 5),
+    maxRetries: parseIntEnv('PAGESPEED_QUEUE_MAX_RETRIES', 3),
   },
 };
 

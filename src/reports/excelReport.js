@@ -60,6 +60,7 @@ export async function generateExcelReport(auditResult) {
     { header: 'SEO', key: 'seoScore', width: 10 },
     { header: 'FCP', key: 'firstContentfulPaint', width: 14 },
     { header: 'LCP', key: 'largestContentfulPaint', width: 14 },
+    { header: 'INP', key: 'interactionToNextPaint', width: 14 },
     { header: 'TBT', key: 'totalBlockingTime', width: 14 },
     { header: 'CLS', key: 'cumulativeLayoutShift', width: 14 },
     { header: 'Speed Index', key: 'speedIndex', width: 14 },
