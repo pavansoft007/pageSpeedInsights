@@ -27,6 +27,27 @@ function getRetryDelayMs(response, attempt, retryDelayMs, rateLimitDelayMs) {
   return retryDelayMs * attempt;
 }
 
+function serializePageSpeedParams(params) {
+  const parts = [];
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+
+    if (key === 'category' && Array.isArray(value)) {
+      for (const category of value) {
+        parts.push(`category=${encodeURIComponent(category)}`);
+      }
+      continue;
+    }
+
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+  }
+
+  return parts.join('&');
+}
+
 async function throttleRequest() {
   let release;
   const current = new Promise((resolve) => {
@@ -71,7 +92,10 @@ export async function runPageSpeed(url, strategy, options = {}) {
     try {
       logger.debug('Requesting PageSpeed Insights', { url, strategy, attempt, retries });
 
-      const response = await client.get(config.pagespeed.apiUrl, { params });
+      const response = await client.get(config.pagespeed.apiUrl, {
+        params,
+        paramsSerializer: serializePageSpeedParams,
+      });
 
       if (response.status === 429) {
         lastError = new Error(`Rate limited (HTTP 429) for ${url} (${strategy})`);

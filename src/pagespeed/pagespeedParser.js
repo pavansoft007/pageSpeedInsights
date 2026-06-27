@@ -72,6 +72,41 @@ function scoreToPercent(score) {
   return score != null ? Math.round(score * 100) : null;
 }
 
+function formatFieldMs(ms) {
+  if (ms == null || Number.isNaN(ms)) {
+    return null;
+  }
+
+  if (ms >= 1000) {
+    return `${(ms / 1000).toFixed(1)} s`;
+  }
+
+  return `${Math.round(ms)} ms`;
+}
+
+function extractFieldMetrics(data) {
+  const loading = data.loadingExperience;
+  if (!loading?.metrics) {
+    return null;
+  }
+
+  const metrics = loading.metrics;
+  const clsPercentile = metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile;
+
+  return {
+    overallCategory: loading.overall_category ?? null,
+    lcpMs: metrics.LARGEST_CONTENTFUL_PAINT_MS?.percentile ?? null,
+    inpMs: metrics.INTERACTION_TO_NEXT_PAINT?.percentile ?? null,
+    cls: clsPercentile != null ? clsPercentile / 100 : null,
+    fcpMs: metrics.FIRST_CONTENTFUL_PAINT_MS?.percentile ?? null,
+    ttfbMs: metrics.EXPERIMENTAL_TIME_TO_FIRST_BYTE?.percentile ?? null,
+    lcp: formatFieldMs(metrics.LARGEST_CONTENTFUL_PAINT_MS?.percentile),
+    inp: formatFieldMs(metrics.INTERACTION_TO_NEXT_PAINT?.percentile),
+    clsDisplay: clsPercentile != null ? String(clsPercentile / 100) : null,
+    fcp: formatFieldMs(metrics.FIRST_CONTENTFUL_PAINT_MS?.percentile),
+  };
+}
+
 function extractDiagnostics(audits) {
   const diagnostics = [];
 
@@ -115,6 +150,8 @@ export function parseStrategyResult(data, strategy) {
   return {
     strategy,
     fetchedAt: new Date().toISOString(),
+    dataSource: 'lab',
+    fieldData: extractFieldMetrics(data),
     performanceScore: scoreToPercent(categories.performance?.score),
     accessibilityScore: scoreToPercent(categories.accessibility?.score),
     bestPracticesScore: scoreToPercent(categories['best-practices']?.score),
