@@ -75,8 +75,21 @@ function getReportDate(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
 
-function buildReportBasename(date = new Date()) {
-  return `pagespeed-report-${getReportDate(date)}`;
+function formatReportTimestamp(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0');
+
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join('-');
+}
+
+export function buildReportBasename(date = new Date()) {
+  return `pagespeed-report-${formatReportTimestamp(date)}`;
 }
 
 function resolveReportBasename(options = {}) {

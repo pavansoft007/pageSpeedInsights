@@ -8,6 +8,7 @@ import { AuditProgress } from '../utils/auditProgress.js';
 import { normalizeStartUrl } from '../crawler/urlNormalizer.js';
 import { isValidHttpUrl } from '../utils/url.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
+import { normalizeAuditMode, auditModeLabel } from '../pipeline/auditMode.js';
 import logger from '../utils/logger.js';
 
 const jobs = new Map();
@@ -39,6 +40,8 @@ function sanitizeJob(job) {
   return {
     id: job.id,
     url: job.url,
+    auditMode: job.auditMode,
+    auditModeLabel: auditModeLabel(job.auditMode),
     status: job.status,
     stage: job.stage,
     progress: job.progress,
@@ -101,11 +104,13 @@ export class WebAuditService {
 
   startAudit(url, options = {}) {
     const normalized = this.validateUrl(url);
+    const auditMode = normalizeAuditMode(options.auditMode);
     const id = randomUUID();
 
     const job = {
       id,
       url: normalized,
+      auditMode,
       status: 'pending',
       stage: 'Starting',
       progress: { completed: 0, total: 0, errors: 0, percentage: 0 },
@@ -131,7 +136,7 @@ export class WebAuditService {
     const pipeline = new AuditPipeline({
       maxUrls: options.maxUrls,
       concurrency: options.concurrency,
-      outputBasename: 'pagespeed-report',
+      auditMode: job.auditMode,
     });
 
     pipeline.manager.registerShutdownHandlers = () => {};
@@ -147,6 +152,7 @@ export class WebAuditService {
       const result = await pipeline.run(job.url, {
         ui,
         runLogger: ui.runLogger,
+        auditMode: job.auditMode,
         validateDeps: { normalizeStartUrl, isValidHttpUrl },
       });
 

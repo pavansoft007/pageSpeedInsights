@@ -1,11 +1,36 @@
 #!/usr/bin/env node
 
-const url = process.argv[2];
+import { normalizeAuditMode } from './pipeline/auditMode.js';
 
-if (url && !url.startsWith('-')) {
+function parseCliArgs(argv) {
+  let url = null;
+  let auditMode = process.env.AUDIT_MODE ?? 'internal';
+
+  for (const arg of argv) {
+    if (arg === '--single' || arg === '-s') {
+      auditMode = 'single';
+      continue;
+    }
+
+    if (arg.startsWith('--mode=')) {
+      auditMode = arg.slice('--mode='.length);
+      continue;
+    }
+
+    if (!arg.startsWith('-') && !url) {
+      url = arg;
+    }
+  }
+
+  return { url, auditMode: normalizeAuditMode(auditMode) };
+}
+
+const { url, auditMode } = parseCliArgs(process.argv.slice(2));
+
+if (url) {
   const { runAuditCli } = await import('./cli/auditCli.js');
 
-  runAuditCli(url)
+  runAuditCli(url, { auditMode })
     .then((result) => {
       process.exit(result.status === 'completed' || result.analyzed > 0 ? 0 : 1);
     })

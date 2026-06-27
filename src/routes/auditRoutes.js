@@ -15,8 +15,12 @@ router.get(
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { url, maxUrls, concurrency } = req.body ?? {};
-    const audit = webAuditService.startAudit(url, { maxUrls, concurrency });
+    const { url, maxUrls, concurrency, auditMode, mode } = req.body ?? {};
+    const audit = webAuditService.startAudit(url, {
+      maxUrls,
+      concurrency,
+      auditMode: auditMode ?? mode,
+    });
 
     res.status(202).json({
       message: 'Audit started',

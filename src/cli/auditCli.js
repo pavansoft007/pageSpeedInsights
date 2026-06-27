@@ -15,6 +15,7 @@ export async function runAuditCli(startUrl, options = {}) {
   return pipeline.run(startUrl, {
     ui,
     runLogger,
+    auditMode: options.auditMode,
     validateDeps: { normalizeStartUrl, isValidHttpUrl },
   });
 }

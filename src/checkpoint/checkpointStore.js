@@ -8,6 +8,11 @@ import {
   saveJobState,
 } from '../queue/queueStore.js';
 import { normalizeStartUrl } from '../crawler/urlNormalizer.js';
+import { AuditMode, normalizeAuditMode } from '../pipeline/auditMode.js';
+
+function checkpointIndexKey(startUrl, auditMode = AuditMode.INTERNAL) {
+  return `${normalizeStartUrl(startUrl)}::${normalizeAuditMode(auditMode)}`;
+}
 
 function ensureCheckpointDir() {
   fs.mkdirSync(config.paths.checkpoint, { recursive: true });
@@ -70,6 +75,7 @@ export function createCheckpoint(startUrl, urls, options = {}) {
   });
 
   state.startUrl = normalizedStartUrl;
+  state.auditMode = normalizeAuditMode(options.auditMode);
   state.phase = options.phase ?? 'pagespeed';
   state.pages = pages;
   state.crawlCompleted = true;
@@ -77,10 +83,9 @@ export function createCheckpoint(startUrl, urls, options = {}) {
   return state;
 }
 
-export function loadCheckpointByStartUrl(startUrl) {
-  const normalizedStartUrl = normalizeStartUrl(startUrl);
+export function loadCheckpointByStartUrl(startUrl, auditMode = AuditMode.INTERNAL) {
   const index = loadIndex();
-  const checkpointId = index.byUrl[normalizedStartUrl];
+  const checkpointId = index.byUrl[checkpointIndexKey(startUrl, auditMode)];
 
   if (!checkpointId) {
     return null;
@@ -119,7 +124,8 @@ export async function saveCheckpoint(state) {
 
   const index = loadIndex();
   if (state.startUrl) {
-    index.byUrl[state.startUrl] = state.id;
+    index.byUrl[checkpointIndexKey(state.startUrl, state.auditMode ?? AuditMode.INTERNAL)] =
+      state.id;
   }
   index.latestId = state.id;
   writeIndex(index);

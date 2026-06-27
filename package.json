@@ -9,6 +9,8 @@
   "main": "src/start.js",
   "scripts": {
     "start": "node src/start.js",
+    "audit:internal": "node src/start.js --mode=internal",
+    "audit:single": "node src/start.js --mode=single",
     "server": "node src/server.js",
     "dev": "node --watch src/server.js",
     "audit": "node src/cli.js",

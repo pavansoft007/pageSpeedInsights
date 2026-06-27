@@ -24,13 +24,32 @@
               id="url"
               name="url"
               type="text"
-              placeholder="https://www.example.com"
+              placeholder="https://www.example.com/page"
               required
               autocomplete="url"
             />
             <button type="submit" id="submit-btn">Start Audit</button>
           </div>
-          <p class="hint">Supports sitemap discovery, Playwright crawl, mobile + desktop PageSpeed</p>
+
+          <fieldset class="mode-fieldset">
+            <legend>Audit scope</legend>
+            <label class="mode-option">
+              <input type="radio" name="auditMode" value="internal" checked />
+              <span>
+                <strong>Internal links</strong>
+                <small>Discover sitemap / crawl site and audit all internal URLs</small>
+              </span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="auditMode" value="single" />
+              <span>
+                <strong>Single URL</strong>
+                <small>Run PageSpeed on this URL only (no crawl)</small>
+              </span>
+            </label>
+          </fieldset>
+
+          <p class="hint">Mobile + desktop PageSpeed, Excel and CSV reports</p>
         </form>
 
         <section id="status-panel" class="status-panel hidden">

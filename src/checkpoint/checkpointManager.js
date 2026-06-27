@@ -2,7 +2,7 @@ import { config } from '../config/index.js';
 import logger from '../utils/logger.js';
 import { discoverWebsite } from '../crawler/index.js';
 import { QueueManager } from '../queue/queueManager.js';
-import { generatePageSpeedReports } from '../reports/pagespeedReport.js';
+import { generatePageSpeedReports, buildReportBasename } from '../reports/pagespeedReport.js';
 import {
   createCheckpoint,
   isCheckpointResumable,
@@ -16,7 +16,7 @@ export class CheckpointManager {
     this.concurrency = options.concurrency ?? config.queue.concurrency;
     this.maxRetries = options.maxRetries ?? config.queue.maxRetries;
     this.maxUrls = options.maxUrls;
-    this.outputBasename = options.outputBasename ?? 'pagespeed-report';
+    this.outputBasename = options.outputBasename ?? buildReportBasename();
     this.ui = options.ui ?? null;
     this.queueManager = new QueueManager({
       showProgress: false,
@@ -55,17 +55,18 @@ export class CheckpointManager {
     });
   }
 
-  createCheckpointFromDiscovery(startUrl, urls, discoveryMethod = 'unknown') {
+  createCheckpointFromDiscovery(startUrl, urls, discoveryMethod = 'unknown', auditMode) {
     const state = createCheckpoint(startUrl, urls, {
       concurrency: this.concurrency,
       maxRetries: this.maxRetries,
+      auditMode,
     });
     state.discoveryMethod = discoveryMethod;
     return state;
   }
 
-  async resolveCheckpoint(startUrl) {
-    const existing = loadCheckpointByStartUrl(startUrl);
+  async resolveCheckpoint(startUrl, auditMode) {
+    const existing = loadCheckpointByStartUrl(startUrl, auditMode);
 
     if (isCheckpointResumable(existing)) {
       return { state: existing, resumed: true };
@@ -83,7 +84,8 @@ export class CheckpointManager {
     const state = this.createCheckpointFromDiscovery(
       startUrl,
       discovery.urls,
-      discovery.discoveryMethod
+      discovery.discoveryMethod,
+      auditMode
     );
 
     await this.persist(state);

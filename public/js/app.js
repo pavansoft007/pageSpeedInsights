@@ -63,10 +63,16 @@ function renderSummary(summary) {
   `;
 }
 
+function getSelectedAuditMode() {
+  const selected = form.querySelector('input[name="auditMode"]:checked');
+  return selected?.value ?? 'internal';
+}
+
 function renderAudit(audit) {
   statusBadge.textContent = audit.status;
   statusBadge.className = `badge ${audit.status}`;
-  statusStage.textContent = audit.stage ?? '';
+  const modeLabel = audit.auditModeLabel ? `${audit.auditModeLabel} · ` : '';
+  statusStage.textContent = `${modeLabel}${audit.stage ?? ''}`;
   renderProgress(audit.progress);
   renderMessages(audit.messages);
   renderSummary(audit.summary);
@@ -133,6 +139,7 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const url = urlInput.value.trim();
+  const auditMode = getSelectedAuditMode();
   if (!url) {
     return;
   }
@@ -149,7 +156,7 @@ form.addEventListener('submit', async (event) => {
     const response = await fetch('/api/audits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, auditMode }),
     });
 
     const data = await response.json();

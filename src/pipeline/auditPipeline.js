@@ -7,6 +7,8 @@ import { AuditProgress } from '../utils/auditProgress.js';
 import { buildAuditSummary } from '../utils/cliUi.js';
 import { PipelineStage, PipelineStageLabels } from './stages.js';
 
+import { AuditMode, auditModeLabel, normalizeAuditMode } from './auditMode.js';
+
 function validateUrl(input, normalizeStartUrlFn, isValidHttpUrl) {
   if (!input || typeof input !== 'string') {
     throw new Error('Usage: npm start <url>');
@@ -25,10 +27,31 @@ function toRelativePath(filepath) {
   return path.relative(config.projectRoot, filepath).replace(/\\/g, '/');
 }
 
+function warnInternalModeOnDeepLink(url, auditMode, ui) {
+  if (auditMode !== AuditMode.INTERNAL) {
+    return;
+  }
+
+  try {
+    const pathname = new URL(url).pathname;
+    if (pathname && pathname !== '/') {
+      ui?.info(
+        'Internal links mode on a specific page URL will still discover all site URLs from sitemap/crawl.'
+      );
+      ui?.info('Use --mode=single or: npm run audit:single -- <url>');
+    }
+  } catch {
+    // ignore invalid URL here; validateUrl will handle it
+  }
+}
+
 export class AuditPipeline {
   constructor(options = {}) {
-    this.options = options;
-    this.manager = new CheckpointManager(options);
+    this.options = {
+      ...options,
+      auditMode: normalizeAuditMode(options.auditMode),
+    };
+    this.manager = new CheckpointManager(this.options);
     this.startedAtMs = Date.now();
   }
 
@@ -65,21 +88,41 @@ export class AuditPipeline {
     return discovery;
   }
 
-  async run(startUrl, { ui, runLogger, validateDeps }) {
+  async resolveUrls(startUrl, ui) {
+    if (this.options.auditMode === AuditMode.SINGLE) {
+      this.logStage(ui, PipelineStage.INPUT, `single URL mode — ${startUrl}`);
+      ui?.info('Single URL mode — skipping sitemap discovery and crawl');
+
+      return {
+        urls: [startUrl],
+        discoveryMethod: 'single',
+        stats: { duplicateCanonicals: 0 },
+      };
+    }
+
+    return this.discoverUrls(startUrl, ui);
+  }
+
+  async run(startUrl, { ui, runLogger, validateDeps, auditMode } = {}) {
+    if (auditMode) {
+      this.options.auditMode = normalizeAuditMode(auditMode);
+    }
+
     const url = validateUrl(
       startUrl,
       validateDeps.normalizeStartUrl,
       validateDeps.isValidHttpUrl
     );
 
-    this.logStage(ui, PipelineStage.INPUT, url);
+    this.logStage(ui, PipelineStage.INPUT, `${auditModeLabel(this.options.auditMode)} — ${url}`);
+    warnInternalModeOnDeepLink(url, this.options.auditMode, ui);
     this.manager.registerShutdownHandlers();
 
-    const existing = loadCheckpointByStartUrl(url);
+    const existing = loadCheckpointByStartUrl(url, this.options.auditMode);
     let state;
     let resumed = false;
 
-    if (isCheckpointResumable(existing)) {
+    if (isCheckpointResumable(existing) && existing.auditMode === this.options.auditMode) {
       state = existing;
       resumed = true;
       ui?.info(
@@ -87,7 +130,7 @@ export class AuditPipeline {
       );
       ui?.info(`Skipping ${state.stats.completedCount} already completed URLs`);
     } else {
-      const discovery = await this.discoverUrls(url, ui);
+      const discovery = await this.resolveUrls(url, ui);
 
       if (discovery.urls.length === 0) {
         throw new Error('No URLs found to analyze');
@@ -96,7 +139,8 @@ export class AuditPipeline {
       state = this.manager.createCheckpointFromDiscovery(
         url,
         discovery.urls,
-        discovery.discoveryMethod
+        discovery.discoveryMethod,
+        this.options.auditMode
       );
       await this.manager.persist(state);
     }
@@ -140,6 +184,7 @@ export class AuditPipeline {
 
     return {
       url,
+      auditMode: this.options.auditMode,
       resumed,
       discoveryMethod: resumed ? 'checkpoint' : state.discoveryMethod,
       checkpointId: finalState.id,
