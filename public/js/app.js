@@ -1,7 +1,12 @@
 const form = document.getElementById('audit-form');
 const urlInput = document.getElementById('url');
+const urlLabel = document.getElementById('url-label');
+const auditModeInput = document.getElementById('auditMode');
+const modeHint = document.getElementById('mode-hint');
+const modeButtons = [...document.querySelectorAll('.mode-btn')];
 const submitBtn = document.getElementById('submit-btn');
 const statusPanel = document.getElementById('status-panel');
+const modeBadge = document.getElementById('mode-badge');
 const statusBadge = document.getElementById('status-badge');
 const statusStage = document.getElementById('status-stage');
 const progressFill = document.getElementById('progress-fill');
@@ -14,8 +19,48 @@ const downloadExcel = document.getElementById('download-excel');
 const downloadCsv = document.getElementById('download-csv');
 const errorBox = document.getElementById('error-box');
 
+const MODE_COPY = {
+  internal: {
+    label: 'Internal URLs',
+    urlLabel: 'Website URL (start page)',
+    placeholder: 'https://www.example.com',
+    hint: 'Discovers sitemap / crawls internal links and runs PageSpeed on all pages found.',
+  },
+  single: {
+    label: 'Single URL',
+    urlLabel: 'Page URL',
+    placeholder: 'https://www.example.com/about-us',
+    hint: 'Runs PageSpeed on this one URL only. No sitemap or crawl.',
+  },
+};
+
 let pollTimer = null;
 let currentAuditId = null;
+
+function getSelectedAuditMode() {
+  return auditModeInput.value === 'single' ? 'single' : 'internal';
+}
+
+function setAuditMode(mode) {
+  const nextMode = mode === 'single' ? 'single' : 'internal';
+  const copy = MODE_COPY[nextMode];
+
+  auditModeInput.value = nextMode;
+  urlLabel.textContent = copy.urlLabel;
+  urlInput.placeholder = copy.placeholder;
+  modeHint.textContent = copy.hint;
+  modeBadge.textContent = copy.label;
+
+  modeButtons.forEach((button) => {
+    button.classList.toggle('active', button.dataset.mode === nextMode);
+  });
+}
+
+function setModeControlsDisabled(disabled) {
+  modeButtons.forEach((button) => {
+    button.disabled = disabled;
+  });
+}
 
 function showPanel() {
   statusPanel.classList.remove('hidden');
@@ -24,6 +69,7 @@ function showPanel() {
 function setLoading(loading) {
   submitBtn.disabled = loading;
   submitBtn.textContent = loading ? 'Running...' : 'Start Audit';
+  setModeControlsDisabled(loading);
 }
 
 function renderMessages(messages = []) {
@@ -63,16 +109,17 @@ function renderSummary(summary) {
   `;
 }
 
-function getSelectedAuditMode() {
-  const selected = form.querySelector('input[name="auditMode"]:checked');
-  return selected?.value ?? 'internal';
-}
-
 function renderAudit(audit) {
   statusBadge.textContent = audit.status;
   statusBadge.className = `badge ${audit.status}`;
-  const modeLabel = audit.auditModeLabel ? `${audit.auditModeLabel} · ` : '';
-  statusStage.textContent = `${modeLabel}${audit.stage ?? ''}`;
+
+  if (audit.auditModeLabel) {
+    modeBadge.textContent = audit.auditModeLabel;
+  } else if (audit.auditMode) {
+    setAuditMode(audit.auditMode);
+  }
+
+  statusStage.textContent = audit.stage ?? '';
   renderProgress(audit.progress);
   renderMessages(audit.messages);
   renderSummary(audit.summary);
@@ -135,6 +182,12 @@ function startPolling(id) {
   pollAudit(id);
 }
 
+modeButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    setAuditMode(button.dataset.mode);
+  });
+});
+
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
@@ -151,6 +204,7 @@ form.addEventListener('submit', async (event) => {
   downloadsEl.classList.add('hidden');
   messagesEl.innerHTML = '';
   renderProgress({ completed: 0, total: 0, percentage: 0 });
+  modeBadge.textContent = MODE_COPY[auditMode].label;
 
   try {
     const response = await fetch('/api/audits', {
@@ -173,3 +227,5 @@ form.addEventListener('submit', async (event) => {
     errorBox.classList.remove('hidden');
   }
 });
+
+setAuditMode('internal');

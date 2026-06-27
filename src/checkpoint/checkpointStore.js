@@ -83,10 +83,7 @@ export function createCheckpoint(startUrl, urls, options = {}) {
   return state;
 }
 
-export function loadCheckpointByStartUrl(startUrl, auditMode = AuditMode.INTERNAL) {
-  const index = loadIndex();
-  const checkpointId = index.byUrl[checkpointIndexKey(startUrl, auditMode)];
-
+function tryLoadCheckpointState(checkpointId) {
   if (!checkpointId) {
     return null;
   }
@@ -98,6 +95,56 @@ export function loadCheckpointByStartUrl(startUrl, auditMode = AuditMode.INTERNA
   } catch {
     return null;
   }
+}
+
+export function checkpointMatchesMode(state, auditMode = AuditMode.INTERNAL) {
+  if (!state) {
+    return false;
+  }
+
+  const expectedMode = normalizeAuditMode(auditMode);
+  const stateMode = normalizeAuditMode(state.auditMode ?? AuditMode.INTERNAL);
+
+  if (stateMode !== expectedMode) {
+    return false;
+  }
+
+  if (expectedMode === AuditMode.SINGLE) {
+    if (state.stats?.total > 1) {
+      return false;
+    }
+
+    if (state.discoveryMethod && state.discoveryMethod !== 'single') {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function loadCheckpointByStartUrl(startUrl, auditMode = AuditMode.INTERNAL) {
+  const mode = normalizeAuditMode(auditMode);
+  const index = loadIndex();
+  const keyedId = index.byUrl[checkpointIndexKey(startUrl, mode)];
+  const keyedState = tryLoadCheckpointState(keyedId);
+
+  if (checkpointMatchesMode(keyedState, mode)) {
+    return keyedState;
+  }
+
+  if (mode !== AuditMode.INTERNAL) {
+    return null;
+  }
+
+  const legacyKey = normalizeStartUrl(startUrl);
+  const legacyId = index.byUrl[legacyKey];
+  const legacyState = tryLoadCheckpointState(legacyId);
+
+  if (checkpointMatchesMode(legacyState, AuditMode.INTERNAL)) {
+    return legacyState;
+  }
+
+  return null;
 }
 
 export function loadLatestCheckpoint() {
@@ -124,8 +171,13 @@ export async function saveCheckpoint(state) {
 
   const index = loadIndex();
   if (state.startUrl) {
-    index.byUrl[checkpointIndexKey(state.startUrl, state.auditMode ?? AuditMode.INTERNAL)] =
-      state.id;
+    const normalizedStartUrl = normalizeStartUrl(state.startUrl);
+    const mode = normalizeAuditMode(state.auditMode ?? AuditMode.INTERNAL);
+    index.byUrl[checkpointIndexKey(state.startUrl, mode)] = state.id;
+
+    if (Object.prototype.hasOwnProperty.call(index.byUrl, normalizedStartUrl)) {
+      delete index.byUrl[normalizedStartUrl];
+    }
   }
   index.latestId = state.id;
   writeIndex(index);
@@ -153,5 +205,6 @@ export default {
   saveCheckpoint,
   markCheckpointCompleted,
   isCheckpointResumable,
+  checkpointMatchesMode,
   getCompletedUrls,
 };

@@ -18,43 +18,41 @@
 
       <main class="card">
         <form id="audit-form" class="form">
-          <label for="url">Website URL</label>
+          <div class="mode-toggle" role="group" aria-label="Audit scope">
+            <button type="button" class="mode-btn active" data-mode="internal">
+              Internal URLs
+            </button>
+            <button type="button" class="mode-btn" data-mode="single">
+              Single URL
+            </button>
+          </div>
+          <input type="hidden" id="auditMode" name="auditMode" value="internal" />
+
+          <label for="url" id="url-label">Website URL</label>
           <div class="input-row">
             <input
               id="url"
               name="url"
               type="text"
-              placeholder="https://www.example.com/page"
+              placeholder="https://www.example.com"
               required
               autocomplete="url"
             />
             <button type="submit" id="submit-btn">Start Audit</button>
           </div>
 
-          <fieldset class="mode-fieldset">
-            <legend>Audit scope</legend>
-            <label class="mode-option">
-              <input type="radio" name="auditMode" value="internal" checked />
-              <span>
-                <strong>Internal links</strong>
-                <small>Discover sitemap / crawl site and audit all internal URLs</small>
-              </span>
-            </label>
-            <label class="mode-option">
-              <input type="radio" name="auditMode" value="single" />
-              <span>
-                <strong>Single URL</strong>
-                <small>Run PageSpeed on this URL only (no crawl)</small>
-              </span>
-            </label>
-          </fieldset>
-
-          <p class="hint">Mobile + desktop PageSpeed, Excel and CSV reports</p>
+          <p id="mode-hint" class="hint">
+            Crawls sitemap / internal links and runs PageSpeed on every page found.
+          </p>
+          <p class="hint">Mobile + desktop PageSpeed · timestamped Excel and CSV reports</p>
         </form>
 
         <section id="status-panel" class="status-panel hidden">
           <div class="status-header">
-            <span id="status-badge" class="badge">Running</span>
+            <div class="status-badges">
+              <span id="mode-badge" class="badge mode">Internal URLs</span>
+              <span id="status-badge" class="badge">Running</span>
+            </div>
             <span id="status-stage" class="stage"></span>
           </div>
 

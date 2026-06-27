@@ -123,7 +123,7 @@ export class WebAuditService {
     };
 
     jobs.set(id, job);
-    this.runAudit(job, options).catch((error) => {
+    this.runAudit(job, { ...options, auditMode: job.auditMode }).catch((error) => {
       logger.error('Web audit failed', { id, error: error.message });
     });
 

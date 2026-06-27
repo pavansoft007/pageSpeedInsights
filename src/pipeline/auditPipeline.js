@@ -2,7 +2,7 @@ import path from 'node:path';
 import { config } from '../config/index.js';
 import { CheckpointManager } from '../checkpoint/checkpointManager.js';
 import { discoverWebsite } from '../crawler/index.js';
-import { loadCheckpointByStartUrl, isCheckpointResumable } from '../checkpoint/checkpointStore.js';
+import { loadCheckpointByStartUrl, isCheckpointResumable, checkpointMatchesMode } from '../checkpoint/checkpointStore.js';
 import { AuditProgress } from '../utils/auditProgress.js';
 import { buildAuditSummary } from '../utils/cliUi.js';
 import { PipelineStage, PipelineStageLabels } from './stages.js';
@@ -122,7 +122,10 @@ export class AuditPipeline {
     let state;
     let resumed = false;
 
-    if (isCheckpointResumable(existing) && existing.auditMode === this.options.auditMode) {
+    if (
+      isCheckpointResumable(existing) &&
+      checkpointMatchesMode(existing, this.options.auditMode)
+    ) {
       state = existing;
       resumed = true;
       ui?.info(
