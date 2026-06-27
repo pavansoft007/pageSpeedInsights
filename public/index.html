@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Website Performance Auditor</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="logo">⚡</div>
+        <div>
+          <h1>Website Performance Auditor</h1>
+          <p>Discover URLs, run PageSpeed Insights, and download reports</p>
+        </div>
+      </header>
+
+      <main class="card">
+        <form id="audit-form" class="form">
+          <label for="url">Website URL</label>
+          <div class="input-row">
+            <input
+              id="url"
+              name="url"
+              type="text"
+              placeholder="https://www.example.com"
+              required
+              autocomplete="url"
+            />
+            <button type="submit" id="submit-btn">Start Audit</button>
+          </div>
+          <p class="hint">Supports sitemap discovery, Playwright crawl, mobile + desktop PageSpeed</p>
+        </form>
+
+        <section id="status-panel" class="status-panel hidden">
+          <div class="status-header">
+            <span id="status-badge" class="badge">Running</span>
+            <span id="status-stage" class="stage"></span>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-bar">
+              <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div class="progress-meta">
+              <span id="progress-text">0 / 0</span>
+              <span id="progress-percent">0%</span>
+            </div>
+          </div>
+
+          <div id="messages" class="messages"></div>
+
+          <div id="summary" class="summary hidden"></div>
+
+          <div id="downloads" class="downloads hidden">
+            <a id="download-excel" class="btn secondary" href="#">Download Excel</a>
+            <a id="download-csv" class="btn secondary" href="#">Download CSV</a>
+          </div>
+
+          <p id="error-box" class="error-box hidden"></p>
+        </section>
+      </main>
+    </div>
+
+    <script src="/js/app.js" type="module"></script>
+  </body>
+</html>

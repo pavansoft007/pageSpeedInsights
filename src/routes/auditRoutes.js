@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { auditService } from '../services/auditService.js';
+import path from 'node:path';
+import { webAuditService } from '../services/webAuditService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -7,29 +8,19 @@ const router = Router();
 router.get(
   '/',
   asyncHandler(async (_req, res) => {
-    res.json({ audits: auditService.listAudits() });
+    res.json({ audits: webAuditService.listJobs() });
   })
 );
 
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { url, maxPages, maxDepth, strategy, generateReports } = req.body ?? {};
-    const audit = auditService.startAudit(url, {
-      maxPages,
-      maxDepth,
-      strategy,
-      generateReports,
-    });
+    const { url, maxUrls, concurrency } = req.body ?? {};
+    const audit = webAuditService.startAudit(url, { maxUrls, concurrency });
 
     res.status(202).json({
       message: 'Audit started',
-      audit: {
-        id: audit.id,
-        startUrl: audit.startUrl,
-        status: audit.status,
-        startedAt: audit.startedAt,
-      },
+      audit,
     });
   })
 );
@@ -37,8 +28,24 @@ router.post(
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const audit = auditService.getAudit(req.params.id);
+    const audit = webAuditService.getJobStatus(req.params.id);
     res.json({ audit });
+  })
+);
+
+router.get(
+  '/:id/download/excel',
+  asyncHandler(async (req, res) => {
+    const filepath = webAuditService.getReportPath(req.params.id, 'excel');
+    res.download(filepath, path.basename(filepath));
+  })
+);
+
+router.get(
+  '/:id/download/csv',
+  asyncHandler(async (req, res) => {
+    const filepath = webAuditService.getReportPath(req.params.id, 'csv');
+    res.download(filepath, path.basename(filepath));
   })
 );
 
